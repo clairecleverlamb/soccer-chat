@@ -2,7 +2,7 @@
 
 A Django app for football managers and analysts. It will look up stored player stats and evaluate a player from stats you enter, including through a chatbot.
 
-This repository is the project framework. Player data, evaluation logic, and the chatbot are not built yet.
+Player lookup, evaluation, and the chatbot are still to build. A developer can already define and update the knowledge dataset the chatbot will retrieve from.
 
 ## Apps
 
@@ -11,7 +11,8 @@ This repository is the project framework. Player data, evaluation logic, and the
 | `apps.accounts` | Custom user model and login. Add profile fields here. |
 | `apps.players` | Player identity and stored stats for lookup. |
 | `apps.evaluations` | Score a player from stats that are typed in, without requiring a saved player. |
-| `apps.chat` | Conversation that will call lookup and evaluation. |
+| `apps.knowledge` | RAG dataset: source documents and the published release the chatbot reads. |
+| `apps.chat` | Conversation that will call lookup, evaluation, and the active knowledge release. |
 | `apps.core` | Home page and the shared page shell. |
 
 `accounts.User` is the auth user (`AUTH_USER_MODEL`). Add fields on that model before the first production migration if you need them; changing the user model later is painful.
@@ -49,6 +50,18 @@ python manage.py runserver
 ```
 
 Optional environment variables live in `.env` (see `.env.example`). Local settings default to debug mode and SQLite.
+
+## Knowledge dataset
+
+Documents live in a JSONL file, one JSON object per line, with `source_id`, `title`, `body`, and optional `metadata`. `source_id` is the stable key: import the same id again to update that document.
+
+```bash
+python manage.py load_knowledge data/soccer.jsonl --dataset soccer --name "Soccer knowledge" --replace
+```
+
+`--replace` removes documents that are no longer in the file, then publishes. A bad file publishes nothing. Admin at `/admin/` can inspect documents and publish a dataset after a one-off edit. Saving a document in admin stores a draft; chatbot knowledge changes when that dataset is published.
+
+`apps.knowledge.services.active_chunks("soccer")` returns the chunks from the active release. The chat app will call this when retrieval is built.
 
 ## Tests
 

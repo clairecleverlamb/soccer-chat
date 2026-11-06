@@ -11,4 +11,4 @@ class CoreConfig(AppConfig):
 
         admin.site.site_header = "Soccer Chat admin"
         admin.site.site_title = "Soccer Chat"
-        admin.site.index_title = "Players, evaluations, and chat"
+        admin.site.index_title = "Knowledge, players, evaluations, and chat"

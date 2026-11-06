@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "apps.accounts",
     "apps.players",
     "apps.evaluations",
+    "apps.knowledge",
     "apps.chat",
 ]
 
@@ -117,3 +118,7 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Characters per published chunk, and how many characters repeat on the next one.
+KNOWLEDGE_CHUNK_SIZE = int(os.environ.get("KNOWLEDGE_CHUNK_SIZE", "800"))
+KNOWLEDGE_CHUNK_OVERLAP = int(os.environ.get("KNOWLEDGE_CHUNK_OVERLAP", "100"))
