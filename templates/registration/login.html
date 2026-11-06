@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Log in · Soccer Chat{% endblock %}
+
+{% block content %}
+  <section class="panel narrow">
+    <h1>Log in</h1>
+    <p>Sign in to keep later lookups and evaluations with your account.</p>
+    <form method="post" class="stack-form">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="form-errors" role="alert">{{ form.non_field_errors }}</div>
+      {% endif %}
+      <label for="{{ form.username.id_for_label }}">Username</label>
+      {{ form.username.errors }}
+      {{ form.username }}
+      <label for="{{ form.password.id_for_label }}">Password</label>
+      {{ form.password.errors }}
+      {{ form.password }}
+      <button type="submit">Log in</button>
+    </form>
+  </section>
+{% endblock %}

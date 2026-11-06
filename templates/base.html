@@ -1,0 +1,43 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Soccer Chat{% endblock %}</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%231f7a3a'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="{% url 'home' %}">Soccer Chat</a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="{% url 'players:index' %}" {% if request.resolver_match.namespace == "players" %}aria-current="page"{% endif %}>Players</a>
+      <a href="{% url 'evaluations:index' %}" {% if request.resolver_match.namespace == "evaluations" %}aria-current="page"{% endif %}>Evaluate</a>
+      <a href="{% url 'chat:index' %}" {% if request.resolver_match.namespace == "chat" %}aria-current="page"{% endif %}>Chat</a>
+      {% if user.is_authenticated %}
+        <span class="nav-user">{{ user.get_username }}</span>
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button type="submit">Log out</button>
+        </form>
+      {% else %}
+        <a href="{% url 'login' %}" {% if request.resolver_match.url_name == "login" %}aria-current="page"{% endif %}>Log in</a>
+      {% endif %}
+    </nav>
+  </header>
+  <main>
+    {% if messages %}
+      <ul class="messages">
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="site-footer">
+    <p>Look up player stats, or evaluate a player from numbers you already have.</p>
+  </footer>
+</body>
+</html>

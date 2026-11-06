@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Soccer Chat{% endblock %}
+
+{% block content %}
+  <section class="hero">
+    <p class="eyebrow">For managers and analysts</p>
+    <h1>Use player stats in the decision, not after it.</h1>
+    <p class="lede">
+      Soccer Chat is a place to look up a player's numbers and to score a player
+      from stats you type in. Both will be available in chat once those stories are built.
+    </p>
+  </section>
+  <section class="cards" aria-label="Workflows">
+    <a class="card" href="{% url 'players:index' %}">
+      <h2>Player lookup</h2>
+      <p>Find a player and read the stats stored for them.</p>
+    </a>
+    <a class="card" href="{% url 'evaluations:index' %}">
+      <h2>Evaluate a player</h2>
+      <p>Enter stats and get a read you can use in a squad decision.</p>
+    </a>
+    <a class="card" href="{% url 'chat:index' %}">
+      <h2>Ask in chat</h2>
+      <p>One conversation that can look stats up and evaluate them.</p>
+    </a>
+  </section>
+{% endblock %}
