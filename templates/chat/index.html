@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Chat · Soccer Chat{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/chat.css' %}">
+
+<section class="panel chat-panel">
+  <p class="eyebrow">Soccer Chat</p>
+  <h1>Make sense of the numbers.</h1>
+  <p class="chat-intro">
+    Ask about player statistics, comparisons, and performance.
+    Include the player and season when possible.
+  </p>
+
+  <div
+    id="conversation"
+    class="conversation"
+    role="log"
+    aria-label="Conversation"
+    aria-live="polite"
+    aria-relevant="additions"
+  >
+    <article class="chat-message">
+      <strong>Soccer Chat</strong>
+      <p>What would you like to know about a player?</p>
+    </article>
+  </div>
+
+  <form id="chat-form" method="post" action="{% url 'chat:index' %}">
+    {% csrf_token %}
+    <label for="question">Your question</label>
+    <textarea
+      id="question"
+      name="question"
+      rows="3"
+      maxlength="2000"
+      placeholder="For example: What does expected goals tell us about a striker?"
+      required
+    ></textarea>
+
+    <div class="chat-controls">
+      <span id="chat-status" role="status"></span>
+      <button id="send-button" type="submit">Send question</button>
+    </div>
+
+    <p id="chat-error" class="chat-error" role="alert"></p>
+    <noscript>
+      <p>Please enable JavaScript to use the chat interface.</p>
+    </noscript>
+  </form>
+</section>
+
+<script src="{% static 'js/chat.js' %}" defer></script>
+{% endblock %}
