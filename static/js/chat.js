@@ -24,6 +24,8 @@ function addMessage(author, text, fromUser = false) {
   message.append(heading, body);
   conversation.append(message);
   conversation.scrollTop = conversation.scrollHeight;
+
+  return message;
 }
 
 form.addEventListener("submit", async (event) => {
@@ -79,7 +81,9 @@ form.addEventListener("submit", async (event) => {
     }
 
     addMessage("You", question, true);
-    addMessage("Soccer Chat", data.answer);
+    const am = addMessage("Soccer Chat", data.answer);
+    renderSources(am, data.sources);
+    conversation.scrollTop = conversation.scrollHeight;
     input.value = "";
   } catch (error) {
     errorText.textContent = error.name === "AbortError"
