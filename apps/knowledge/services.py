@@ -1,6 +1,8 @@
 """Load a knowledge file and publish the release the chatbot will read."""
 
 import json
+import csv
+import re
 from pathlib import Path
 
 from django.conf import settings
@@ -63,13 +65,22 @@ def load_knowledge_file(
     description: str = "",
     user=None,
 ) -> Release:
-    """Create or update a dataset from JSONL and publish that result.
+    """Create or update a dataset from JSONL or CSV and publish that result.
 
     Parsing happens before the database transaction. An invalid file leaves
     the active release untouched.
     """
     _validate_slug(dataset_slug)
-    records = parse_jsonl(path)
+    
+    # Route parsing based on file extension
+    suffix = path.suffix.lower()
+    if suffix == ".csv":
+        records = parse_csv(path)
+    elif suffix in (".jsonl", ".json"):
+        records = parse_jsonl(path)
+    else:
+        raise KnowledgeLoadError(f"Unsupported file format '{suffix}'. Use .jsonl or .csv.")
+
     if not records and not replace:
         raise KnowledgeLoadError(
             "The file has no documents. Use --replace to publish an empty dataset."
@@ -197,3 +208,59 @@ def _required_text(payload: dict, field: str, line_number: int, max_length: int 
             f"Line {line_number} {field} is longer than {max_length} characters."
         )
     return text
+
+def parse_csv(path: Path) -> list[dict]:
+    """Read a headerless, positional CSV file into document records, 
+    automatically extracting a season prefix from the filename.
+    """
+    if not path.is_file():
+        raise KnowledgeLoadError(f"File not found: {path}")
+
+    # Automatically extract a season/year pattern from the filename (e.g., "2026_2027" or "2026")
+    season_match = re.search(r"(\d{4}_\d{4}|\d{4}-\d{4}|\d{4})", path.name)
+    season_prefix = season_match.group(1) if season_match else ""
+
+    records = []
+    first_line_for_source: dict[str, int] = {}
+
+    try:
+        with open(path, mode="r", encoding="utf-8", newline="") as f:
+            reader = csv.reader(f)
+            
+            for line_number, row in enumerate(reader, start=1):
+                # Skip empty rows
+                if not row or not any(row):
+                    continue
+
+                # 1. Map positional indices and apply the automatic season prefix to source_id
+                raw_id = row[0].strip() if len(row) > 0 else f"row-{line_number}"
+                source_id = f"{season_prefix}-{raw_id}" if season_prefix else raw_id
+                
+                title = row[1].strip() if len(row) > 1 else source_id
+                
+                # 2. Join all remaining feature columns together into a readable text body
+                body_parts = [col.strip() for col in row[2:] if col and col.strip()]
+                body = " ".join(body_parts) if body_parts else title
+
+                payload = {
+                    "source_id": source_id,
+                    "title": title,
+                    "body": body,
+                    "metadata": {"season": season_prefix} if season_prefix else {},  # Stores season context
+                }
+
+                # 3. Run through your existing normalizer and duplicate validator
+                record = _normalize_record(payload, line_number)
+                previous = first_line_for_source.get(record["source_id"])
+                if previous is not None:
+                    raise KnowledgeLoadError(
+                        f"Line {line_number} repeats source_id {record['source_id']!r}, "
+                        f"first used on line {previous}."
+                    )
+                first_line_for_source[record["source_id"]] = line_number
+                records.append(record)
+                
+    except csv.Error as exc:
+        raise KnowledgeLoadError(f"Error parsing CSV file: {exc}") from exc
+
+    return records
