@@ -52,5 +52,52 @@
   </form>
 </section>
 
+{# ADDED: markup blueprint for one answer's sources #}
+<template id="sources-template">
+  <details class="chat-sources">
+    <summary></summary>
+    <div class="chat-sources-list"></div>
+  </details>
+</template>
+
+<template id="source-item-template">
+  <div class="chat-source">
+    <strong class="chat-source-title"></strong>
+    <blockquote class="chat-source-snippet"></blockquote>
+  </div>
+</template>
+
+{# ADDED: fills the templates. textContent means no manual escaping is needed. #}
+<script>
+  window.renderSources = function (article, sources) {
+    if (!sources || !sources.length) return;
+
+    // Group chunks from the same document, keeping relevance order
+    const groups = new Map();
+    sources.forEach((s) => {
+      if (!groups.has(s.source_id)) groups.set(s.source_id, { title: s.title, chunks: [] });
+      groups.get(s.source_id).chunks.push(s.snippet);
+    });
+
+    const wrapper = document.getElementById("sources-template").content.cloneNode(true);
+    wrapper.querySelector("summary").textContent =
+      `Sources (${groups.size})`;
+    const list = wrapper.querySelector(".chat-sources-list");
+
+    groups.forEach((group) => {
+      group.chunks.forEach((snippet, i) => {
+        const item = document.getElementById("source-item-template").content.cloneNode(true);
+        // Show the title once per document
+        item.querySelector(".chat-source-title").textContent = i === 0 ? group.title : "";
+        item.querySelector(".chat-source-snippet").textContent = snippet;
+        list.appendChild(item);
+      });
+    });
+
+    article.appendChild(wrapper);
+  };
+</script>
+
+
 <script src="{% static 'js/chat.js' %}" defer></script>
 {% endblock %}
