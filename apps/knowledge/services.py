@@ -209,14 +209,43 @@ def _required_text(payload: dict, field: str, line_number: int, max_length: int 
         )
     return text
 
+# Full column headers corresponding to your positional CSV layout
+FBREF_COLUMNS = [
+    "Rk", "Player", "Nation", "Pos", "Squad", "Comp", "Age", "Born",
+    "MP", "Starts", "Min", "90s", "Gls", "Ast", "G+A", "G-PK", "PK", "PKatt",
+    "CrdY", "CrdR", "G+A-PK",
+    "Rk_stats_keeper", "Nation_stats_keeper", "Pos_stats_keeper", "Comp_stats_keeper",
+    "Age_stats_keeper", "Born_stats_keeper", "MP_stats_keeper", "Starts_stats_keeper",
+    "Min_stats_keeper", "90s_stats_keeper", "GA", "GA90", "SoTA", "Saves", "Save%",
+    "W", "D", "L", "CS", "CS%", "PKatt_stats_keeper", "PKA", "PKsv", "PKm",
+    "Rk_stats_shooting", "Nation_stats_shooting", "Pos_stats_shooting", "Comp_stats_shooting",
+    "Age_stats_shooting", "Born_stats_shooting", "90s_stats_shooting", "Gls_stats_shooting",
+    "Sh", "SoT", "SoT%", "Sh/90", "SoT/90", "G/Sh", "G/SoT", "PK_stats_shooting", "PKatt_stats_shooting",
+    "Rk_stats_playing_time", "Nation_stats_playing_time", "Pos_stats_playing_time", "Comp_stats_playing_time",
+    "Age_stats_playing_time", "Born_stats_playing_time", "MP_stats_playing_time", "Min_stats_playing_time",
+    "Mn/MP", "Min%", "90s_stats_playing_time", "Starts_stats_playing_time", "Mn/Start", "Compl",
+    "Subs", "Mn/Sub", "unSub", "PPM", "onG", "onGA", "+/-", "+/-90", "On-Off",
+    "Rk_stats_misc", "Nation_stats_misc", "Pos_stats_misc", "Comp_stats_misc",
+    "Age_stats_misc", "Born_stats_misc", "90s_stats_misc", "CrdY_stats_misc", "CrdR_stats_misc",
+    "2CrdY", "Fls", "Fld", "Off", "Crs", "Int", "TklW", "OG"
+]
+
+# Columns to skip because they are duplicate metadata or redundant sub-table headers
+REDUNDANT_COLUMNS = {
+    "Rk_stats_keeper", "Nation_stats_keeper", "Pos_stats_keeper", "Comp_stats_keeper", "Age_stats_keeper", "Born_stats_keeper", "MP_stats_keeper", "Starts_stats_keeper", "Min_stats_keeper", "90s_stats_keeper",
+    "Rk_stats_shooting", "Nation_stats_shooting", "Pos_stats_shooting", "Comp_stats_shooting", "Age_stats_shooting", "Born_stats_shooting", "90s_stats_shooting", "Gls_stats_shooting", "PK_stats_shooting", "PKatt_stats_shooting",
+    "Rk_stats_playing_time", "Nation_stats_playing_time", "Pos_stats_playing_time", "Comp_stats_playing_time", "Age_stats_playing_time", "Born_stats_playing_time", "MP_stats_playing_time", "Min_stats_playing_time", "90s_stats_playing_time", "Starts_stats_playing_time",
+    "Rk_stats_misc", "Nation_stats_misc", "Pos_stats_misc", "Comp_stats_misc", "Age_stats_misc", "Born_stats_misc", "90s_stats_misc", "CrdY_stats_misc", "CrdR_stats_misc"
+}
+
 def parse_csv(path: Path) -> list[dict]:
-    """Read a headerless, positional CSV file into document records, 
-    automatically extracting a season prefix from the filename.
+    """Read a headerless, positional FBref CSV file into document records, 
+    adding labeled attributes, handling missing data, and appending the filename to the title.
     """
     if not path.is_file():
         raise KnowledgeLoadError(f"File not found: {path}")
 
-    # Automatically extract a season/year pattern from the filename (e.g., "2026_2027" or "2026")
+    # Automatically extract season prefix from filename (e.g., "2025_2026")
     season_match = re.search(r"(\d{4}_\d{4}|\d{4}-\d{4}|\d{4})", path.name)
     season_prefix = season_match.group(1) if season_match else ""
 
@@ -232,24 +261,40 @@ def parse_csv(path: Path) -> list[dict]:
                 if not row or not any(row):
                     continue
 
-                # 1. Map positional indices and apply the automatic season prefix to source_id
+                # 1. Map source_id and namespaced prefix
                 raw_id = row[0].strip() if len(row) > 0 else f"row-{line_number}"
                 source_id = f"{season_prefix}-{raw_id}" if season_prefix else raw_id
                 
-                title = row[1].strip() if len(row) > 1 else source_id
+                # 2. Format title as "Player Name (filename.csv)"
+                player_name = row[1].strip() if len(row) > 1 else source_id
+                title = f"{player_name} ({path.name})"
                 
-                # 2. Join all remaining feature columns together into a readable text body
-                body_parts = [col.strip() for col in row[2:] if col and col.strip()]
-                body = " ".join(body_parts) if body_parts else title
+                # 3. Build labeled text body, ignoring empty values and redundant columns
+                body_parts = []
+                for i in range(2, min(len(row), len(FBREF_COLUMNS))):
+                    col_name = FBREF_COLUMNS[i]
+                    val = row[i].strip()
+                    
+                    # Skip blank cells and repetitive metadata headers
+                    if not val or col_name in REDUNDANT_COLUMNS:
+                        continue
+                        
+                    body_parts.append(f"{col_name}: {val}")
+
+                body = ". ".join(body_parts) if body_parts else title
 
                 payload = {
                     "source_id": source_id,
                     "title": title,
                     "body": body,
-                    "metadata": {"season": season_prefix} if season_prefix else {},  # Stores season context
+                    "metadata": {
+                        "season": season_prefix,
+                        "player": player_name,
+                        "source_file": path.name
+                    } if season_prefix else {"player": player_name, "source_file": path.name},
                 }
 
-                # 3. Run through your existing normalizer and duplicate validator
+                # 4. Run through standard normalizer and duplicate validator
                 record = _normalize_record(payload, line_number)
                 previous = first_line_for_source.get(record["source_id"])
                 if previous is not None:
