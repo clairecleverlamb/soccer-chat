@@ -1,0 +1,90 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<p>
+  Statistics for the last 24 hours.
+  Server processing time excludes network transfer and browser rendering.
+</p>
+
+<div class="module">
+  <table>
+    <caption>Performance overview</caption>
+    <tbody>
+      <tr>
+        <th scope="row">Total requests</th>
+        <td>{{ stats.total }}</td>
+      </tr>
+      <tr>
+        <th scope="row">Successful responses (200–399)</th>
+        <td>{{ stats.successful }}</td>
+      </tr>
+      <tr>
+        <th scope="row">Rejected requests (400–499)</th>
+        <td>{{ stats.rejected }}</td>
+      </tr>
+      <tr>
+        <th scope="row">Server failures (500–599)</th>
+        <td>{{ stats.failed }}</td>
+      </tr>
+      <tr>
+        <th scope="row">Server failure rate</th>
+        <td>{{ stats.failure_rate|floatformat:1 }}%</td>
+      </tr>
+      <tr>
+        <th scope="row">Average processing time</th>
+        <td>
+          {% if stats.total %}
+            {{ stats.average_ms|floatformat:1 }} ms
+          {% else %}
+            No requests yet
+          {% endif %}
+        </td>
+      </tr>
+      <tr>
+        <th scope="row">Maximum processing time</th>
+        <td>
+          {% if stats.total %}
+            {{ stats.maximum_ms|floatformat:1 }} ms
+          {% else %}
+            No requests yet
+          {% endif %}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="module">
+  <table>
+    <caption>Latest 20 requests within this period</caption>
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Processing time</th>
+        <th>HTTP status</th>
+        <th>Error type</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in recent_requests %}
+        <tr>
+          <td>{{ item.created_at|date:"Y-m-d H:i:s T" }}</td>
+          <td>{{ item.response_ms|floatformat:1 }} ms</td>
+          <td>{{ item.status_code }}</td>
+          <td>{{ item.error_type|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="4">No chat requests in the last 24 hours.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<p>
+  <a href="{% url 'admin:chat_chatrequest_changelist' %}">
+    View all request metrics
+  </a>
+</p>
+{% endblock %}
