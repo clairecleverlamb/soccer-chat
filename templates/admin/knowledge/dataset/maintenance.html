@@ -1,0 +1,35 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<h2>{{ dataset.name }}</h2>
+
+{% if operation == "clear" %}
+  <p>
+    Clear the active knowledge base for this dataset?
+    The chatbot will stop retrieving its information.
+  </p>
+  <p>
+    Source documents will be kept, so you can restore the
+    knowledge base using Reload.
+  </p>
+{% else %}
+  <p>
+    Rebuild the knowledge base using the current source documents?
+  </p>
+  <p>
+    This will publish a new version for the chatbot to use.
+  </p>
+{% endif %}
+
+<form method="post">
+  {% csrf_token %}
+  <div class="submit-row">
+    <input
+      type="submit"
+      value="Confirm {{ operation|title }}"
+      class="default"
+    >
+    <a href="{{ back_url }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}
