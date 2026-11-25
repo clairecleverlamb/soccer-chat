@@ -1,8 +1,8 @@
 # Soccer Chat
 
-A Django app for football managers and analysts. It will look up stored player stats and evaluate a player from stats you enter, including through a chatbot.
+A Django app for football managers and analysts. The chatbot retrieves published soccer knowledge, classifies questions into factual, explanation, or creative intents, and responds using the selected behavior.
 
-Player lookup, evaluation, and the chatbot are still to build. A developer can already define and update the knowledge dataset the chatbot will retrieve from.
+Player lookup and evaluation are still to build. A developer can define and update the knowledge dataset the chatbot retrieves from.
 
 ## Apps
 
@@ -12,7 +12,7 @@ Player lookup, evaluation, and the chatbot are still to build. A developer can a
 | `apps.players` | Player identity and stored stats for lookup. |
 | `apps.evaluations` | Score a player from stats that are typed in, without requiring a saved player. |
 | `apps.knowledge` | RAG dataset: source documents and the published release the chatbot reads. |
-| `apps.chat` | Conversation that will call lookup, evaluation, and the active knowledge release. |
+| `apps.chat` | Intent-aware chatbot using the active knowledge release. |
 | `apps.core` | Home page and the shared page shell. |
 
 `accounts.User` is the auth user (`AUTH_USER_MODEL`). Add fields on that model before the first production migration if you need them; changing the user model later is painful.
@@ -61,7 +61,32 @@ python manage.py load_knowledge data/soccer.jsonl --dataset soccer --name "Socce
 
 `--replace` removes documents that are no longer in the file, then publishes. A bad file publishes nothing. Admin at `/admin/` can inspect documents and publish a dataset after a one-off edit. Saving a document in admin stores a draft; chatbot knowledge changes when that dataset is published.
 
-`apps.knowledge.services.active_chunks("soccer")` returns the chunks from the active release. The chat app will call this when retrieval is built.
+`apps.knowledge.services.active_chunks("soccer")` returns the chunks from the active release, which the chat app uses for retrieval.
+
+## Chat prompts and accuracy checks
+
+Each chat request is classified at runtime as a factual lookup, explanation, or creative response. The selected intent changes the system instruction and the grounded response style. The app does not currently call an external language model; it renders a concise answer from retrieved source text so responses stay grounded.
+
+The known-question regression tests check intent selection, expected facts, and source retrieval against the sample knowledge dataset:
+
+```bash
+python manage.py test apps.chat.tests
+```
+
+For a quick demo, publish the sample dataset and start the app:
+
+```bash
+python manage.py load_knowledge data/soccer.jsonl --dataset soccer --replace
+python manage.py runserver
+```
+
+Open the chat page and try:
+
+- `Where does Rodri receive in 2024-25?` — factual lookup
+- `Explain what makes a pressing forward effective.` — explanation
+- `Write a scout's note about Mbappe.` — creative response
+
+Each answer displays its detected intent and retrieved source. To show the validation to a TA, run `python manage.py test apps.chat.tests` and point out the expected fact/source assertions.
 
 ## Tests
 

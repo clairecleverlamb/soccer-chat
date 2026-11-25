@@ -33,6 +33,12 @@
   white-space: pre-wrap;
 }
 
+.chat-intent {
+  display: inline-block;
+  margin-top: 0.6rem;
+  color: var(--muted);
+}
+
 .chat-message.from-user {
   margin-left: auto;
   background: #e7f2e9;
