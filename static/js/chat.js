@@ -82,6 +82,12 @@ form.addEventListener("submit", async (event) => {
 
     addMessage("You", question, true);
     const am = addMessage("Soccer Chat", data.answer);
+    if (data.intent) {
+      const intent = document.createElement("small");
+      intent.className = "chat-intent";
+      intent.textContent = `Intent: ${data.intent}`;
+      am.append(intent);
+    }
     renderSources(am, data.sources);
     conversation.scrollTop = conversation.scrollHeight;
     input.value = "";
